@@ -3,16 +3,42 @@ import requests
 
 st.title('Customer Feedback System')
 
+BASE_URL = 'http://localhost:3000/api'
+
+def submit_feedback(user, message):
+    try:
+        response = requests.post(f'{BASE_URL}/feedback', json={'user': user, 'message': message})
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error submitting feedback: {e}")
+        return None
+
+def get_feedbacks():
+    try:
+        response = requests.get(f'{BASE_URL}/feedback')
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching feedback: {e}")
+        return []
+
 user = st.text_input('User:')
 message = st.text_area('Message:')
 if st.button('Submit'):
-    response = requests.post('http://localhost:3000/api/feedback', json={'user': user, 'message': message})
-    if response.status_code == 201:
-        st.success('Feedback submitted successfully')
+    if user and message:
+        feedback = submit_feedback(user, message)
+        if feedback:
+            st.success('Feedback submitted successfully')
     else:
-        st.error('Error submitting feedback')
+        st.warning('Please provide both user and message.')
 
-feedbacks = requests.get('http://localhost:3000/api/feedback').json()
 st.write('## Feedbacks')
-for feedback in feedbacks:
-    st.write(f"**{feedback['user']}**: {feedback['message']}")
+
+feedbacks = get_feedbacks()
+if feedbacks:
+    filter_user = st.text_input('Filter by user:')
+    filtered_feedbacks = [f for f in feedbacks if filter_user.lower() in f['user'].lower()] if filter_user else feedbacks
+
+    for feedback in filtered_feedbacks:
+        st.write(f"**{feedback['user']}**: {feedback['message']} (Submitted on {feedback['created_at']})")
