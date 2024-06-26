@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 
 st.title('Customer Feedback System')
+st.title('We will get back to you as soon as possible ')
 
 BASE_URL = 'http://localhost:3000/api'
 
