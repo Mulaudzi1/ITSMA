@@ -1,38 +1,46 @@
 import streamlit as st
 import requests
 
-st.title('Service-Oriented Architecture (SOA) System')
+st.title('Customer Feedback System')
+st.title('We will get back to you as soon as possible ')
 
-# Function to fetch services from the backend
-def get_services():
-    response = requests.get('http://localhost:5000/services')
-    if response.status_code == 200:
-        return response.json()
-    else:
-        st.error('Failed to fetch services')
-        return []
+BASE_URL = 'http://localhost:3000/api'
 
-# Function to fetch a single service by ID
-def get_service(service_id):
-    response = requests.get(f'http://localhost:5000/service/{service_id}')
-    if response.status_code == 200:
+def submit_feedback(user, message):
+    try:
+        response = requests.post(f'{BASE_URL}/feedback', json={'user': user, 'message': message})
+        response.raise_for_status()
         return response.json()
-    else:
-        st.error('Failed to fetch service')
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error submitting feedback: {e}")
         return None
 
-# Display all services
-st.header('Available Services')
-services = get_services()
-for service in services:
-    st.subheader(service['name'])
-    st.write(service['description'])
+def get_feedbacks():
+    try:
+        response = requests.get(f'{BASE_URL}/feedback')
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching feedback: {e}")
+        return []
 
-# Input for service ID to fetch details
-service_id = st.number_input('Enter service ID to fetch details', min_value=1)
-if st.button('Get Service Details'):
-    service = get_service(service_id)
-    if service:
-        st.subheader(service['name'])
-        st.write(service['description'])
+user = st.text_input('User:')
+message = st.text_area('Message:')
+if st.button('Submit'):
+    if user and message:
+        feedback = submit_feedback(user, message)
+        if feedback:
+            st.success('Feedback submitted successfully')
+    else:
+        st.warning('Please provide both user and message.')
+
+st.write('## Feedbacks')
+
+feedbacks = get_feedbacks()
+if feedbacks:
+    filter_user = st.text_input('Filter by user:')
+    filtered_feedbacks = [f for f in feedbacks if filter_user.lower() in f['user'].lower()] if filter_user else feedbacks
+
+    for feedback in filtered_feedbacks:
+        st.write(f"**{feedback['user']}**: {feedback['message']} (Submitted on {feedback['created_at']})")
 
